@@ -4,6 +4,8 @@ services:
     build: coffee/.
   tea:
     build: tea/.
+  auth:
+    build: auth/.
   nginx:
     image: nginx
     ports:
