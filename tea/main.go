@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func coffeeHandler(w http.ResponseWriter, r *http.Request) {
+func teaHandler(w http.ResponseWriter, r *http.Request) {
 	servant, err := os.Hostname()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -17,6 +17,6 @@ func coffeeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/tea", coffeeHandler)
+	http.HandleFunc("/tea", teaHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
