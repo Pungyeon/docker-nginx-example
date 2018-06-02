@@ -2,7 +2,9 @@
 
 ## Requirements
 *Docker*: You will need Docker installed for going through this short article. Installation instructions can be found here: https://docs.docker.com/install/
+
 *Text Editor*: Any text editor will do, I recommend Visual Code: https://code.visualstudio.com/
+
 *Golang (optional)*: https://golang.org/dl/ not mandatory, but makes it easier for writing/testing the go code outside of docker
 
 
@@ -17,12 +19,14 @@ Now, there are a lot of other ways to achieve this and other tools for this purp
 
 ## Project Structure
 So the folder structure of this mini-project, will end up looking something like this:
+```
 .
 ./auth/                 # Our service for authorization
 ./coffee/               # Our service for delivering coffee
 ./tea/                  # Our service for delivering tea
 ./nginx/                # Files for configuration of our NGINX instance
 .docker-compose.yml
+```
 
 With our docker-compose file consiting of four services: 
 - The NGINX gateway/proxy
@@ -76,7 +80,7 @@ ENTRYPOINT ["./main"]
 
 So, in summary, we pull our golang docker image, set our working directory `/tea` copy our main.go file and compile it with `go build build main.go`, which will place a `main` executable binary file in our working directory. We expose port `8080`, so that other containers on the network can reach our web service (on port 8080) and finally, we specify that when the docker container is run, we run our `main` binary.
 
-`NOTE: To create our coffee service, simply copy both main.go and the Dockerfile into the coffee folder and change the HTTP response from "Your Tea has been..." to "Your Coffee has been..."... or whatever you feel like sending back. There is no need to change the Dockerfile.`
+> **NOTE**: To create our coffee service, simply copy both main.go and the Dockerfile into the coffee folder and change the HTTP response from "Your Tea has been..." to "Your Coffee has been..."... or whatever you feel like sending back. There is no need to change the Dockerfile.
 
 ## Setting up NGINX
 Now that we have both our services that we want to be served by NGINX, we just need to configure our NGINX service. There is no hocus pocus about this and NGINX run in Docker, is configured exactly the same way as normally. Let's begin by creating a file in our nginx folder:
@@ -98,7 +102,7 @@ http {
 ```
 So essentially, this simple NGINX config file sets the `worker_connections` (the maximum amount of concurrent connections) to 1024 and we define an http server, listening on port 8080. This server, will redirect request on url path /tea to our tea service container on port 8080. So, in other words, if the IP of our NGINX server is 10.10.10.10, if we send a GET request to http://10.10.10.10:8080/tea, this will be redirected to http://tea:8080/tea. The user will not be aware of this whatsoever.
 
-`NOTE: The "tea" service will be registered with docker-compose's service discovery. This works pretty much exactly like DNS, so "tea" will be resolved to the IP address of our tea service container`
+> **NOTE**: The "tea" service will be registered with docker-compose's service discovery. This works pretty much exactly like DNS, so "tea" will be resolved to the IP address of our tea service container`
 
 ## Setting up Docker Compose
 Cool, and now to finish the first part of our application, we will create a `docker-compose.yml` in our root directory, which will define our application to include our tea service and our nginx proxy:
@@ -185,7 +189,7 @@ location /coffee {
 }
 ```
 
-> NOTE: something to take note of with these locations are, that they are not strict. This means that all subrequest os `/coffee`, will also be passed onto our coffee service. So, if we decide to create a new handler with the URI of http://coffee:8080/coffee/aeropress and another called http://coffee:8080/coffee/pourover. These API endpoints can also be access via. our NGINX gateway, without making any changes to our configuration file.
+> **NOTE**: something to take note of with these locations are, that they are not strict. This means that all subrequest os `/coffee`, will also be passed onto our coffee service. So, if we decide to create a new handler with the URI of http://coffee:8080/coffee/aeropress and another called http://coffee:8080/coffee/pourover. These API endpoints can also be access via. our NGINX gateway, without making any changes to our configuration file.
 
 If we were to fun our docker-compose file now. We would be able to access both of tea service on `localhost:8080/tea` and our coffee service on `localhost:8080/coffee`. Which is pretty neat! Unfortunately, our services aren't living up to standard security standards. Most importantly, we are missing out on encryption in transit, as we are using HTTP instead of HTTPS, and there is no authentication/authorization so anyone can access our services. Haivng to write HTTPS and authentication modules for both/all services, might become a tedious process. If our teams working on our services have to do this independantly, we might also introduce inconsistencies into our environment. Not good. However, this is where our API gateway is going to help us. A lot.
 
@@ -290,7 +294,7 @@ So, this is what our nginx configuration looks like. As you can see, we have add
 This line will pass our incoming request through our `/auth` location. If this auth request is successful, the request will then be sent to our coffee or tea service, as it has been previously, however, if the auth request is unsuccessful, NGINX will return an error status (such as 401). At the bottom of our configuration we have added our auth location. This service is defined as `internal`, which ensures that anyone other than NGINX trying to access this location will get a `404 Not Found`. This location is private to our service. All, we do with this is send the request on to another service, our authentication service, which we shall write now...
 
 ## Writing our Example Authentication Service
-> NOTE: So, just to be clear. This is merely an example service, this is not secure and is exclusively for demonstrative purposes. 
+> **NOTE**: So, just to be clear. This is merely an example service, this is not secure and is exclusively for demonstrative purposes. 
 
 Our authentication service will be responsible for one thing, and one thing only. Giving us an answer to whether or not a request has the correct `Authorization` header. 
 
@@ -347,7 +351,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/index.html:/app/html:ro
 
-> NOTE: just like with our coffee and tea services, we can reuse the Dockerfile again for our auth service, due to it's extreme simplicity.
+> **NOTE**: just like with our coffee and tea services, we can reuse the Dockerfile again for our auth service, due to it's extreme simplicity.
 
 So, now all we need to do is spin up `docker-compose up -d` and afterwards, hit it up with some curl commands.
 
@@ -422,7 +426,7 @@ http {
 }
 ```
 
-> NOTE: that we have not set a value for our tea service. So, if this service was scaled, NGINX would not update it's records.
+> **NOTE**: that we have not set a value for our tea service. So, if this service was scaled, NGINX would not update it's records.
 
 So, now let's restart our services with `docker-compose up` and try to call our service again:
 
