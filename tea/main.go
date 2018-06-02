@@ -11,6 +11,7 @@ func teaHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error, no Tea for your :("))
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Your Tea has been served by - " + servant))

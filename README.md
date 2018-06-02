@@ -7,11 +7,11 @@
 
 
 ## Introduction
-Building Microservices is a really tough thing to do and while there is a shocking amount of hype around how and why one should build Microservices, there is an equally shocking lack of articles on creating API gateway's for your Microservices. Either that, or I am shit at using Google (which, quite frankly, is a very feasible thesis).
+Building Microservices is a really tough thing to do and while there is a shocking amount of hype around how and why one should build Microservices, there is an equally shocking lack of articles on creating (simple) API gateway's for your Microservices. Either that, or I am shit at using Google (which, quite frankly, is a very feasible thesis).
 
-Either way! Let's talk API Gateway! What is it? Why do I need it? Well, you don't necessarily need an API Gateway for your Microservices, it 100% depends on your architecture. However, in certain cases, an API Gateway is used for centralising and distributing API calls. This ensures that you always contact the API Gateway, instead of having to directly contact each microservice depending on your specific need. This simplifies the flow of traffic and also comes with a lot of other really neat side-effects, which we will explore a little in this article.
+Either way! Let's talk API Gateway! What is it? Why do I need it? Well, you don't necessarily need an API Gateway for your Microservices, it 100% depends on your architecture. However, in certain cases, an API Gateway is used for centralising and distributing API calls. This ensures that you always contact the API Gateway, instead of having to directly contact each microservice depending on your specific need. This simplifies the flow of traffic and also comes with a lot of other really neat side-effects, some of which, we will explore in this article.
 
-So, what should my API Gateway do? Well, other than being able to redirect requests to the correct service, the API gateway can help us with securing our microservices. This is typically done, by acting as a proxy and adding authentication and encryption for every requests which requires this. This is super helpful, as it helps developers develop quickly (no, I refuse to use the word agility). Instead of developers having to implement SSL and authentication into every single service that they write, the API gateway can take care of this for you. So every connection is encrypted and also ensured to be authenticated.
+So, what should my API Gateway do? Well, other than being able to redirect requests to the correct service, the API gateway can help us with securing our microservices. This is typically done, by acting as a proxy and adding authentication and encryption for every requests which requires this. This is super helpful, as it simplifies the work developers have to do, making their lives a lot easier. Instead of developers having to implement SSL and authentication into every single service that they write, the API gateway can take care of this for them. So every connection is encrypted and also ensured to be authenticated.
 
 Now, there are a lot of other ways to achieve this and other tools for this purpose (such as Kong API Gateway and Spring Boot API Gateway)... If you are using Kubernetes, you are probably aware of the super-hyped Istio service-mesh, which comes with some extra features, that are all super cool. However, for now, let's delve into the simple antics of using NGINX as an API Gateway. 
 
@@ -30,7 +30,7 @@ With our docker-compose file consiting of four services:
 - The Authorisation dummy service
 
 ## Creating the Tea service
-So, first, we are going to create two, more or less identical services: The Coffee and Tea services, which will be written in golang. Very simply, they will return a response of either Coffe or Tea being served, whenever a request is sent. Let's have a look at our Services:
+So, first, we are going to create two, more or less, identical services: The Coffee and Tea services, which will be written in golang. Very simply, they will return a response of either Coffe or Tea being served, whenever a request is sent. Let's have a look at our Services:
 
 ### tea/main.go
 ```go
@@ -46,7 +46,8 @@ func teaHandler(w http.ResponseWriter, r *http.Request) {
 	servant, err := os.Hostname() // get the hostname of the docker container
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Error, no Tea for your :("))
+        w.Write([]byte("Error, no Tea for your :("))
+        return
 	}
     // return the message, together with container hostname
     w.WriteHeader(http.StatusOK)
@@ -145,7 +146,8 @@ func coffeeHandler(w http.ResponseWriter, r *http.Request) {
 	servant, err := os.Hostname()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Error, no coffee for your :("))
+        w.Write([]byte("Error, no coffee for your :("))
+        return
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Your Coffee has been served by - " + servant))
@@ -305,7 +307,8 @@ func checkAuth(w http.ResponseWriter, r *http.Request) {
 	authString := r.Header.Get("Authorization")
 	if authString == "CSlkjdfj3423lkj234jj==" {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Authenticated: True"))
+        w.Write([]byte("Authenticated: True"))
+        return
 	}
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte("Authenticated: False"))
@@ -360,7 +363,8 @@ Which should return our now familiar message: `our Tea has been served by - ee31
 
 So, of course. This last step was a little bit more work than implementing SSL. However, please keep in mind that implementing authentication isn't any easier normally. The difference is, that this authentication method is valid for every new service introduced into our platform. If we decide that we need a service for serving a different beverage, we just write that service and with just a few configuration changes, we implement SSL and authentication. This way of working makes it possible for service owners to focus on their service and security owners to focus on making great security implementations, without getting in each others way. It makes development and progress much faster, but at the same time, still ensures that security standards are met, if not heightened (since there is now more time to focus on them).
 
-So some time passes, and we find out that our coffee service is now wildly popular. No problem!! We are in a docker environment, we can just scale horizontally 👍. So, let's try that:
+## Scaling our Services
+So, some time passes, and we find out that our coffee service is now wildly popular. No problem!! We are in a docker environment, we can just scale horizontally 👍. So, let's try that:
 
 > docker-compose scale coffee=4
 
@@ -431,11 +435,23 @@ $ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
 > Your Coffee has been served by - 266a341781b3
 ```
 
-It works! Hurrah.
+It works! Hurray 🎉 🎊. 
 
-There are obviously tons tools for implementing this kind of structure into your application architecture, some more focused on providing API gateway features (such as Kong API Gateway). But all in all, NGINX does the job pretty well, has a simple configuration and setup and it's something that most developers are used to working with already. For further reading, here are the official sites of the technologies used in this article.
+And that sums up it for the content of this article. Let's summarise shortly, what we have done: 
+1. We created an NGINX configuration which would send requests to our two go services, using path-based routing. Unified all requests to go through our NGINX gateway and letting the gateway handle the Layer 7 routing.
 
-NGINX: https://www.nginx.com/
+2. We secured both our services with SSL, by having the NGINX gateway handle encryption of all incoming connections.
+
+3. We applied authorization controls on our services, having NGINX check the authenticity of incoming requests, headed towards protected resources.
+
+4. We ensured that if services are scaled (up or down), we can load balance traffic to these services using DNS round-robin. This is a super simple form of load-balancing, but for simple scenarios, it works just fine.
+
+Not bad...  not bad. I hope this article was of some use, at the very least giving some insights as to what is possible using NGINX together with Docker. There are tons of more features and there are tons of other tools for implementing this kind of structure into your application architecture, some more focused on providing API gateway features (such as Kong API Gateway). But all in all, NGINX does the job pretty well, has a simple configuration and setup and it's something that most developers are used to working with already. For further reading, here are the official sites of the technologies used in this article.
+
+NGINX: 
+* https://www.nginx.com/
+* https://www.nginx.com/resources/library/complete-nginx-cookbook/ (Free Cookbook)
+* https://www.nginx.com/resources/library/designing-deploying-microservices/
 
 Golang: https://golang.org/
 
