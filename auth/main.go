@@ -10,6 +10,7 @@ func checkAuth(w http.ResponseWriter, r *http.Request) {
 	if authString == "CSlkjdfj3423lkj234jj==" {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Authenticated: True"))
+		return
 	}
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte("Authenticated: False"))

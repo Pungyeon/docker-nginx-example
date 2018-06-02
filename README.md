@@ -281,7 +281,7 @@ http {
 }
 ```
 
-So, this is what our final nginx configuration looks like. As you can see, we have added a few things. On both of our services, we have added the line:
+So, this is what our nginx configuration looks like. As you can see, we have added a few things. On both of our services, we have added the line:
 
 > auth request /auth;
 
@@ -360,13 +360,80 @@ Which should return our now familiar message: `our Tea has been served by - ee31
 
 So, of course. This last step was a little bit more work than implementing SSL. However, please keep in mind that implementing authentication isn't any easier normally. The difference is, that this authentication method is valid for every new service introduced into our platform. If we decide that we need a service for serving a different beverage, we just write that service and with just a few configuration changes, we implement SSL and authentication. This way of working makes it possible for service owners to focus on their service and security owners to focus on making great security implementations, without getting in each others way. It makes development and progress much faster, but at the same time, still ensures that security standards are met, if not heightened (since there is now more time to focus on them).
 
-There are obviously tons tools for implementing this kind of structure into your application architecture. For Kubernetes, the future seems to be clear in the form of Istio service mesh, which has a whole bunch of other really cool features. If Kubernetes is your jam, then I'd definitely recommend reading up on it: 
+So some time passes, and we find out that our coffee service is now wildly popular. No problem!! We are in a docker environment, we can just scale horizontally 👍. So, let's try that:
 
-Istio: https://istio.io/docs/concepts/what-is-istio/overview
+> docker-compose scale coffee=4
 
-Kubernetes: https://kubernetes.io/
+Docker will do it's magic and bing-bang-boom, we now have 4 instances of our coffee service, rather than the single instance we had before. But uh oh.... Something is not working. If we run our curl command against our coffee service, we are always served by the same container...
 
-And here is some more recommended reading, a little more relevant to this article:
+``` 
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 64ab8788dfbb
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 64ab8788dfbb
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 64ab8788dfbb
+```
+
+What? Why? Well, it turns out that NGINX, by default, will store all DNS query results and prevent them from being re-resolved (regardless of TTL) up against the DNS. So, when we start our NGINX service, it will resolve `coffee` and `tea` to the IP address of their respective containers, and will keep this answer until next time NGINX is restarted.... 😓 Oh dear. Well, no worries! There is a workaround.
+
+## Reconfiguring DNS
+To get around this, we need to add a specified `resolver` at the top of our config, and setting the `valid` parameter to 10s. The valid parameter simply specifies that the TTL (Time to Live) of the DNS query result. This means, that when we scale up (or down) of services, NGINX will re-resolve our `coffee` and `tea` service addresses and get a response including all the current addresses.
+
+We then need to add a specific resolution, which will then be applied our TTL value of our previously set `valid` value. In the end our configuration will look like this:
+
+#### nginx/nginx.conf
+```
+events {
+    worker_connections 1024;
+}
+
+http {
+
+    resolver 127.0.0.11 valid=10s;
+
+    server {
+        listen 443 ssl;
+
+        ssl_certificate /etc/nginx/ssl/nginx.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx.key;
+
+        location /coffee {
+            auth_request /auth;
+
+            set $coffee_service coffee:8080;
+            proxy_pass http://$coffee_service/coffee;
+        }
+
+        location /tea {
+            auth_request /auth;
+            proxy_pass http://tea:8080/tea;
+        }
+
+        location /auth {
+            internal;
+            proxy_pass http://auth:8080/authenticated;
+        }
+    }
+}
+```
+
+> NOTE: that we have not set a value for our tea service. So, if this service was scaled, NGINX would not update it's records.
+
+So, now let's restart our services with `docker-compose up` and try to call our service again:
+
+``` 
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 668360b94fa8
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 64ab8788dfbb
+$ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
+> Your Coffee has been served by - 266a341781b3
+```
+
+It works! Hurrah.
+
+There are obviously tons tools for implementing this kind of structure into your application architecture, some more focused on providing API gateway features (such as Kong API Gateway). But all in all, NGINX does the job pretty well, has a simple configuration and setup and it's something that most developers are used to working with already. For further reading, here are the official sites of the technologies used in this article.
 
 NGINX: https://www.nginx.com/
 
@@ -376,5 +443,6 @@ Docker: https://www.docker.com/
 
 ---
 
-Building Microservices (Sam Newmann): https://www.amazon.com/Building-Microservices-Designing-Fine-Grained-Systems/dp/1491950358/ref=sr_1_1?ie=UTF8&qid=1527804394&sr=8-1&keywords=building+microservices
+And for further reading on building microservices, I heartily can recommend Sam Newmanns excellent book on the topic:
 
+Building Microservices (Sam Newmann): https://www.amazon.com/Building-Microservices-Designing-Fine-Grained-Systems/dp/1491950358/ref=sr_1_1?ie=UTF8&qid=1527804394&sr=8-1&keywords=building+microservices
