@@ -1,11 +1,11 @@
 # Using NGINX as an API Gateway for Microservices
 
 ## Requirements
-*Docker*: You will need Docker installed for going through this short article. Installation instructions can be found here: https://docs.docker.com/install/
+**Docker**: You will need Docker installed for going through this short article. Installation instructions can be found here: https://docs.docker.com/install/
 
-*Text Editor*: Any text editor will do, I recommend Visual Code: https://code.visualstudio.com/
+**Text Editor**: Any text editor will do, I recommend Visual Code: https://code.visualstudio.com/
 
-*Golang (optional)*: https://golang.org/dl/ not mandatory, but makes it easier for writing/testing the go code outside of docker
+**Golang** *(optional)*: https://golang.org/dl/ not mandatory, but makes it easier for writing/testing the go code outside of docker
 
 
 ## Introduction
