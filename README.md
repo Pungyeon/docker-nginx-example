@@ -334,6 +334,7 @@ Using this setup, our other services aren't even aware of our authentication and
 So let's update our docker-compose, by adding our auth service, which in it's final form looks like this:
 
 #### ./docker-compose.yml
+```yaml
 version: '3'
 services:
   coffee:
@@ -351,6 +352,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/index.html:/app/html:ro
+```
 
 > **NOTE**: just like with our coffee and tea services, we can reuse the Dockerfile again for our auth service, due to it's extreme simplicity.
 
