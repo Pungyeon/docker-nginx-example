@@ -457,7 +457,7 @@ Not bad...  not bad. I hope this article was of some use, at the very least givi
 
 NGINX: 
 * https://www.nginx.com/
-* https://www.nginx.com/resources/library/complete-nginx-cookbook/ (Free Cookbook)
+* https://www.nginx.com/resources/library/complete-nginx-cookbook/
 * https://www.nginx.com/resources/library/designing-deploying-microservices/
 
 Golang: https://golang.org/
