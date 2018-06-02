@@ -25,7 +25,7 @@ So the folder structure of this mini-project, will end up looking something like
 ./coffee/               # Our service for delivering coffee
 ./tea/                  # Our service for delivering tea
 ./nginx/                # Files for configuration of our NGINX instance
-.docker-compose.yml
+./docker-compose.yml
 ```
 
 With our docker-compose file consiting of four services: 
