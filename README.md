@@ -98,6 +98,7 @@ http {
         location /tea {
             proxy_pass http://tea:8080/tea;
         }
+    }
 }
 ```
 So essentially, this simple NGINX config file sets the `worker_connections` (the maximum amount of concurrent connections) to 1024 and we define an http server, listening on port 8080. This server, will redirect request on url path /tea to our tea service container on port 8080. So, in other words, if the IP of our NGINX server is 10.10.10.10, if we send a GET request to http://10.10.10.10:8080/tea, this will be redirected to http://tea:8080/tea. The user will not be aware of this whatsoever.
