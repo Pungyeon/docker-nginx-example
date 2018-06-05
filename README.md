@@ -7,6 +7,7 @@
 
 **Golang** *(optional)*: https://golang.org/dl/ not mandatory, but makes it easier for writing/testing the go code outside of docker
 
+If you don't want to write any of the code, but just want to follow along and test it out on your own. All code can be retrieved from: https://github.com/Pungyeon/docker-nginx-example
 
 ## Introduction
 Building Microservices is a really tough thing to do and while there is a shocking amount of hype around how and why one should build Microservices, there is an equally shocking lack of articles on creating (simple) API gateway's for your Microservices. Either that, or I am shit at using Google (which, quite frankly, is a very feasible thesis).
