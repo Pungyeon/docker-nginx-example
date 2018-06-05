@@ -9,11 +9,9 @@ import (
 func teaHandler(w http.ResponseWriter, r *http.Request) {
 	servant, err := os.Hostname()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Error, no Tea for your :("))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Your Tea has been served by - " + servant))
 }
 

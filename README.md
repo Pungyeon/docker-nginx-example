@@ -47,21 +47,16 @@ import (
 )
 
 func teaHandler(w http.ResponseWriter, r *http.Request) {
-	servant, err := os.Hostname() // get the hostname of the docker container
+	servant, err := os.Hostname()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-        w.Write([]byte("Error, no Tea for your :("))
-        return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-    // return the message, together with container hostname
-    w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Your Tea has been served by - " + servant))
 }
 
 func main() {
-    // instatiate /tea routing endpoint
-    http.HandleFunc("/tea", teaHandler)
-    // start the server on port 8080 and log (and exit) if an error should occur.
+	http.HandleFunc("/tea", teaHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
@@ -150,11 +145,9 @@ import (
 func coffeeHandler(w http.ResponseWriter, r *http.Request) {
 	servant, err := os.Hostname()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-        w.Write([]byte("Error, no coffee for your :("))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
         return
 	}
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Your Coffee has been served by - " + servant))
 }
 
@@ -311,12 +304,10 @@ import (
 func checkAuth(w http.ResponseWriter, r *http.Request) {
 	authString := r.Header.Get("Authorization")
 	if authString == "CSlkjdfj3423lkj234jj==" {
-		w.WriteHeader(http.StatusOK)
         w.Write([]byte("Authenticated: True"))
         return
 	}
-	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte("Authenticated: False"))
+	http.Error(w, "Authorized: false", http.StatusUnauthorized)
 }
 
 func main() {
