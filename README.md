@@ -187,14 +187,14 @@ location /coffee {
 
 > **NOTE**: something to take note of with these locations are, that they are not strict. This means that all subrequest os `/coffee`, will also be passed onto our coffee service. So, if we decide to create a new handler with the URI of http://coffee:8080/coffee/aeropress and another called http://coffee:8080/coffee/pourover. These API endpoints can also be access via. our NGINX gateway, without making any changes to our configuration file.
 
-If we were to fun our docker-compose file now. We would be able to access both of tea service on `localhost:8080/tea` and our coffee service on `localhost:8080/coffee`. Which is pretty neat! Unfortunately, our services aren't living up to standard security standards. Most importantly, we are missing out on encryption in transit, as we are using HTTP instead of HTTPS, and there is no authentication/authorization so anyone can access our services. Haivng to write HTTPS and authentication modules for both/all services, might become a tedious process. If our teams working on our services have to do this independantly, we might also introduce inconsistencies into our environment. Not good. However, this is where our API gateway is going to help us. A lot.
+If we were to run our docker-compose file now. We would be able to access both of tea service on `localhost:8080/tea` and our coffee service on `localhost:8080/coffee`. Which is pretty neat! Unfortunately, our services aren't living up to standard security standards. Most importantly, we are missing out on encryption in transit, as we are using HTTP instead of HTTPS, and there is no authentication/authorization so anyone can access our services. Having to write HTTPS and authentication modules for both/all services, might become a tedious process. If our teams working on our services have to do this independantly, we might also introduce inconsistencies into our environment. Not good. However, this is where our API gateway is going to help us. A lot.
 
 ## Implementing SSL via. NGINX
-Using NGINX, we can implement SSL on both of our service (kind of) at the same time, without having to touch the code of either of our services. However, first, we need to do a little preparation, by creating our SSL certificates for encrypting traffic between our clients and our NGINX proxy. Here is an example of how to create of certificate key pair, using openssl:
+Using NGINX, we can implement SSL on both of our services at the same time, without having to touch the code of either of our services. However, first, we need to do a little preparation, by creating our SSL certificates for encrypting traffic between our clients and our NGINX proxy. Here is an example of how to create of certificate key pair, using openssl:
 
 > sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/ssl/nginx.key -out nginx/ssl/nginx.crt
 
-Quite simply, we are request an x509 standard certificate from OpenSSL using RSA 2048 bit encryption and placing them in our nginx/ssl folder as our private key (nginx.key) and our public certificate (nginx.crt). SSL Certificates and encryption is a topic complex enough for a lifetime, so I won't cover it too much here, but basically, the publiic certificate will be used by our clients to encrypt traffic to our server and we will use our private certificate to decrypt incoming traffic. To learn more about the public/private certificate
+Quite simply, we are requesting a x509 standard certificate from OpenSSL using RSA 2048 bit encryption and expires after 1 year. We are placing these certificates in our nginx/ssl folder as our private key (nginx.key) and our public certificate (nginx.crt). SSL Certificates and encryption is a topic complex enough for a lifetime, so I won't cover it too much here. However, to summarise the basics, the publiic certificate will be used by our clients to encrypt traffic sent to our NGINX gateway, which will use the private certificate to decrypt incoming traffic.
 
 TO have NGINX use these certificates, we adjust our configuration as such:
 
@@ -230,18 +230,17 @@ We have removed our `listen 8080` line and replaced it with `listen 443 ssl`. Th
     nginx:
         image: nginx
         ports:
-        - "8080:8080"
         - "443:443"
         volumes:
         - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
         - ./nginx/ssl:/etc/nginx/ssl:ro
 ```
 
-Now, we are referring to the entire folder `./nginx/ssl`, rather than the individual files. So now, we can run `docker-compose up -d` once more, to test that we can now access our services using HTTPS.
+Now, we are referring to the entire folder `./nginx/ssl`, rather than the individual files and exposing port 443 instead of 8080. So now, we can run `docker-compose up -d` once more, to test that we can now access our services using HTTPS.
 
 > curl https://localhost/coffee -k
 
-Notice that we are no longer specifying a port (:8080), as mentioned, we are using the default SSL port and therefore it is no longer necessary. However, we do need to use the -k parameter. Our SSL certificate is self-signed, meaning that it is not signed by a trusted certificate authority (a trusted entity) and therefore seen as 'insecure'. The `-k` parameter, will ignore checking the certificate vailidity. If we were to access our service via. a browser, we would get a certificate warning (which we can also ignore).
+Notice that we are no longer specifying a port (:8080), as mentioned earlier, we are using the default SSL port and therefore it is no longer necessary. However, we do need to use the -k parameter. Our SSL certificate is self-signed, meaning that it is not signed by a trusted certificate authority (a trusted entity) and therefore seen as 'insecure'. The `-k` parameter, will ignore checking the certificate vailidity. If we were to access our service via. a browser, we would get a certificate warning (which we can also ignore).
 
 But boom, we are now encrypting, and essentially all it took was 3 lines of configuration change. 
 
@@ -290,7 +289,7 @@ So, this is what our nginx configuration looks like. As you can see, we have add
 This line will pass our incoming request through our `/auth` location. If this auth request is successful, the request will then be sent to our coffee or tea service, as it has been previously, however, if the auth request is unsuccessful, NGINX will return an error status (such as 401). At the bottom of our configuration we have added our auth location. This service is defined as `internal`, which ensures that anyone other than NGINX trying to access this location will get a `404 Not Found`. This location is private to our service. All, we do with this is send the request on to another service, our authentication service, which we shall write now...
 
 ## Writing our Example Authentication Service
-> **NOTE**: So, just to be clear. This is merely an example service, this is not secure and is exclusively for demonstrative purposes. 
+> **NOTE**: So, just to be clear. This is merely an example service, this is not secure and is exclusively for demo usage. 
 
 Our authentication service will be responsible for one thing, and one thing only. Giving us an answer to whether or not a request has the correct `Authorization` header. 
 
@@ -361,7 +360,7 @@ This should return a 401 response. However, if we include an `Authorization` hea
 
 Which should return our now familiar message: `our Tea has been served by - ee3192e3a655`. Joy.
 
-So, of course. This last step was a little bit more work than implementing SSL. However, please keep in mind that implementing authentication isn't any easier normally. The difference is, that this authentication method is valid for every new service introduced into our platform. If we decide that we need a service for serving a different beverage, we just write that service and with just a few configuration changes, we implement SSL and authentication. This way of working makes it possible for service owners to focus on their service and security owners to focus on making great security implementations, without getting in each others way. It makes development and progress much faster, but at the same time, still ensures that security standards are met, if not heightened (since there is now more time to focus on them).
+So, of course. This last step was a little bit more work than implementing SSL. However, please keep in mind that implementing authentication isn't any easier normally. The difference is, that this authentication method is valid for every new service introduced into our application. If we decide that we need a service for serving a different beverage, we just write that service and with just a few configuration changes, we implement SSL and authentication. This way of working makes it possible for service owners to focus on their service and security owners to focus on making great security implementations, without getting in each others way. It makes development and progress much faster, but at the same time, still ensures that security standards are met, if not heightened (since there is now more time to focus on them).
 
 ## Scaling our Services
 So, some time passes, and we find out that our coffee service is now wildly popular. No problem!! We are in a docker environment, we can just scale horizontally 👍. So, let's try that:
@@ -437,7 +436,7 @@ $ curl https://localhost/tea -H "Authorization: CSlkjdfj3423lkj234jj==" -k
 
 It works! Hurray 🎉 🎊. 
 
-And that sums up it for the content of this article. Let's summarise shortly, what we have done: 
+And that sums up it for the content of this article. Let's summarise shortly, what we have achieved: 
 1. We created an NGINX configuration which would send requests to our two go services, using path-based routing. Unified all requests to go through our NGINX gateway and letting the gateway handle the Layer 7 routing.
 
 2. We secured both our services with SSL, by having the NGINX gateway handle encryption of all incoming connections.
@@ -446,7 +445,7 @@ And that sums up it for the content of this article. Let's summarise shortly, wh
 
 4. We ensured that if services are scaled (up or down), we can load balance traffic to these services using DNS round-robin. This is a super simple form of load-balancing, but for simple scenarios, it works just fine.
 
-Not bad...  not bad. I hope this article was of some use, at the very least giving some insights as to what is possible using NGINX together with Docker. There are tons of more features and there are tons of other tools for implementing this kind of structure into your application architecture, some more focused on providing API gateway features (such as Kong API Gateway). But all in all, NGINX does the job pretty well, has a simple configuration and setup and it's something that most developers are used to working with already. For further reading, here are the official sites of the technologies used in this article.
+I hope this article was of some use, at the very least giving some insights as to what is possible using NGINX together with Docker. There are tons of more features and there are tons of other tools for implementing this kind of structure into your application architecture, some more focused on providing API gateway features (such as Kong API Gateway). But all in all, NGINX does the job pretty well, has a simple configuration and setup and it's something that most developers are used to working with already. For further reading, here are the official sites of the technologies used in this article.
 
 NGINX: 
 * https://www.nginx.com/
