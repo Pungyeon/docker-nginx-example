@@ -1,4 +1,4 @@
-# Using NGINX as an API Gateway for Microservices
+# Using NGINX as an API Gateway for Securing Microservices
 
 ## Requirements
 **Docker**: You will need Docker installed for going through this short article. Installation instructions can be found here: https://docs.docker.com/install/
