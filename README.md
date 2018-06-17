@@ -84,7 +84,7 @@ So, in summary, we pull our golang docker image, set our working directory `/tea
 Now that we have both our services that we want to be served by NGINX, we just need to configure our NGINX service. There is no hocus pocus about this. NGINX running in Docker, is configured exactly the same way as normally. Let's begin by creating a file in our nginx folder:
 
 #### nginx/nginx.conf
-```
+```nginx
 events {
     worker_connections 1024;
 }
@@ -136,7 +136,7 @@ We will be able to be served tea by calling:
 So, now that we have our tea service running, we can implement our almost identical coffee service:
 
 #### coffee/main.go
-```golang
+```go
 package main
 
 import (
@@ -180,7 +180,7 @@ services:
 
 The final step now, is to add another line (within our server{} section) to our NGINX configuration, to redirect our users to the coffee service:
 
-```
+```nginx
 location /coffee {
     proxy_pass http://coffee:8080/coffee;
 }
@@ -200,7 +200,7 @@ Quite simply, we are requesting a x509 standard certificate from OpenSSL using R
 TO have NGINX use these certificates, we adjust our configuration as such:
 
 #### nginx/nginx.conf
-```
+```nginx
 events {
     worker_connections 1024;
 }
@@ -226,7 +226,7 @@ http {
 We have removed our `listen 8080` line and replaced it with `listen 443 ssl`. There is nothing wrong with using other ports, however, 443 is the default port for HTTPS traffic, so using it for our service makes life easier for everyone. We are also specifying our public certificate: `ssl_certificate` and our private key: `ssl_certificate_key`. This means, we will also need to refer to these files, in our docker-compose file, as we did with the config, making our NGINX service definition look as such:
 
 #### ./docker-compose.yml
-```
+```yaml
     ...
     nginx:
         image: nginx
@@ -249,7 +249,7 @@ But boom, we are now encrypting, and essentially all it took was 3 lines of conf
 Ok, we are almost there. As mentioned before, anyone can access our services right now. We don't want anyone to access our coffee and tea, so to prevent that we will setup some authentication. Using the same approach / mentality as with setting up SSL, we really don't want to touch the code of our already existing services. Thankfully, this is completely possible with NGINX. Let's have a look at what that looks like configuration wise.
 
 #### nginx/nginx.conf
-```
+```nginx
 events {
     worker_connections 1024;
 }
@@ -295,7 +295,7 @@ This line will pass our incoming request through our `/auth` location. If this a
 Our authentication service will be responsible for one thing, and one thing only. Giving us an answer to whether or not a request has the correct `Authorization` header. 
 
 #### auth/main.go
-```golang
+```go
 package main
 
 import (
@@ -387,7 +387,7 @@ To get around this, we need to add a specified `resolver` at the top of our conf
 We then need to add a specific resolution, which will then be applied our TTL value of our previously set `valid` value. In the end our configuration will look like this:
 
 #### nginx/nginx.conf
-```
+```nginx
 events {
     worker_connections 1024;
 }
